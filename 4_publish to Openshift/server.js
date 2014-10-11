@@ -2,15 +2,35 @@
 var express = require('express');
 var mongojs = require('mongojs');
 
-// instantiate both libraries and connecto to the ex2 database
+// instantiate both libraries and connect to the ex2 database
 var app = express();
-var db = mongojs("ex2", ["courses"]);
+//local
+//var db = mongojs("ex2", ["courses"]);
+
 
 // serve static content (html, css, js) in the public directory
 app.use(express.static(__dirname + '/public'));
 
 // configure express to parse JSON in the body of an HTTP request
 app.use(express.bodyParser());
+
+var mongodbConnectionString  ="mongodb://admin:pmbxWYBaliH2@127.5.202.2:27017/cs5610";
+if (typeof process.env.OPENSHIFT_MONGODB_DB_URL == "undefined") {
+    mongodbConnectionString = "cs5610";
+}
+
+var db = mongojs(mongodbConnectionString, ["courses"]);
+
+
+var ipaddress = process.env.OPENSHIFT_NODEJS_IP || "127.0.0.1";
+var port  = process.env.OPENSHIFT_NODEJS_PORT || 3000;
+
+
+app.listen(port,ipaddress);
+
+app.get('/env',function(req, res){
+	res.json(process.env);
+});
 
 // map incoming HTTP URL patterns to execute various functions
 // handle HTTP GET request to read all courses from the database
@@ -35,10 +55,9 @@ app.post("/courses", function (req, res) {
 	// insert new course object into the database collection courses
 	db.courses.insert(req.body, function (err, doc) {
 		// respond with the new object that has been inserted
+		console.log(err);
+		console.log(doc);
 		res.json(doc);
-
-
-		
 	});
 });
 
@@ -63,9 +82,9 @@ app.put("/courses/:id", function (req, res) {
 		// find the object by id
 		query: { _id: mongojs.ObjectId(req.params.id) },
 		// new values are in req.body, update it's name
-		update: { $set: { name: req.body.name, section:req.body.section, instructor:req.body.instructor, classroom:req.body.classroom } },
+		update: { $set: { name: req.body.name, section:req.body.section, instruction:req.body.instructor, classroom:req.body.classroom } },
 		// single one
-		new: false
+		new: true
 	}, function(err, doc, lastErrorObject) {
 		// respond with the new document
 		res.json(doc);
@@ -74,7 +93,6 @@ app.put("/courses/:id", function (req, res) {
 
 // handle HTTP DELETE request to remove a course with :id parameter
 app.delete("/courses/:id", function (req, res) {
-	console.log(req.params.id);
 	// parse id from the path parameter
 	var id = req.params.id;
 	// find the document by id and remove it
@@ -86,4 +104,4 @@ app.delete("/courses/:id", function (req, res) {
 });
 
 // listen to port 3000 in localhost
-app.listen(3000);
+//app.listen(3000);
